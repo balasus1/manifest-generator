@@ -51,7 +51,7 @@ const DynamicForm = ({ prefillData }) => {
               name={fieldKey}
               control={control}
               defaultValue={value.join(", ")} // Join array elements into a single string
-              render={({ field }) => <Input {...field} type="text" readOnly />}
+              render={({ field }) => <Input {...field} type="text" />}
             />
           </div>
         );
@@ -66,22 +66,8 @@ const DynamicForm = ({ prefillData }) => {
               {Object.entries(item).map(([subKey, subValue]) =>
                 renderField(subKey, subValue, `${fieldKey}[${index}]`)
               )}
-              {/* <Button
-                type="button"
-                variant="destructive"
-                onClick={() => handleRemoveArrayItem(fieldKey, index)}
-              >
-                Remove
-              </Button> */}
             </div>
           ))}
-          {/* <Button
-            type="button"
-            variant="outline"
-            onClick={() => handleAddArrayItem(fieldKey)}
-          >
-            Add
-          </Button> */}
         </div>
       );
     }

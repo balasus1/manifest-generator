@@ -78,7 +78,7 @@ export const UploadJSON = ({ onFileUpload, onFileSelect, showForm }) => {
       </div>
     </div>
     <div className="w-full">
-    {showForm && <DynamicForm prefillData={prefillData.formData} />}
+    {showForm && <DynamicForm prefillData={prefillData} />}
     </div>
     </div>
   );
