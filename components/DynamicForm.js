@@ -29,7 +29,6 @@ const DynamicForm = ({ prefillData }) => {
 
   const renderField = (key, value, parentKey = "") => {
     const fieldKey = parentKey ? `${parentKey}.${key}` : key;
-  
     if (typeof value === "object" && !Array.isArray(value)) {
       return (
         <div key={fieldKey} className="space-y-4">
@@ -50,7 +49,7 @@ const DynamicForm = ({ prefillData }) => {
             <Controller
               name={fieldKey}
               control={control}
-              defaultValue={value.join(", ")} // Join array elements into a single string
+              defaultValue={value.join(", ")} 
               render={({ field }) => <Input {...field} type="text" />}
             />
           </div>
@@ -113,12 +112,42 @@ const DynamicForm = ({ prefillData }) => {
     setFormData(updatedData);
   };
 
-  const onSubmit = (data) => {
-    handleDownload(data);
+  const onSubmit = (formData) => {
+    handleDownload(formData);
   };
 
   const handleDownload = (data) => {
-    const jsonString = JSON.stringify(data || formData, null, 2);
+
+    const processObject = (obj, parentKey = "") => {
+      if (typeof obj !== "object" || obj === null) return obj;
+
+      for (const key in obj) {
+        if (Array.isArray(obj[key]) && (key === "whitelist" || key === "blacklist")) {
+          let newArray = [];
+          if (parentKey === "full" && (key === "whitelist" || key === "blacklist")) {
+            // Convert values to numbers for `otaUpdate` lists
+            obj[key].forEach((item) => {
+              const num = Number(item);
+              if (!isNaN(num)) newArray.push(num); // Add only valid numbers
+            });
+          } else {
+            // Ensure it remains an array of strings elsewhere
+            obj[key].forEach((item) => {
+              newArray.push(String(item)); // Convert to string explicitly
+            });
+          }
+          obj[key] = newArray; // Replace the original array with the new one
+        } else if (typeof obj[key] === "object") {
+          obj[key] = processObject(obj[key], key); // Recursively process nested objects
+        }
+      }
+      return obj;
+    };
+  
+    const transformedData = processObject(JSON.parse(JSON.stringify(formData)));
+  
+    const jsonString = JSON.stringify(transformedData, null, 2);
+  
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
