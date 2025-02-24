@@ -42,7 +42,7 @@ const DynamicForm = ({ prefillData }) => {
   
     if (Array.isArray(value)) {
       // If the array contains only strings, show it as a single text input
-      if (value.every((item) => typeof item === "string")) {
+      if (value.every((item) => typeof item === "string" || (typeof item === "number" || !isNaN(Number(item))))) {
         return (
           <div key={fieldKey} className="space-y-4">
             <h3 className="text-lg font-semibold">{key}</h3>
