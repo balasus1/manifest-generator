@@ -144,7 +144,7 @@ const DynamicForm = ({ prefillData }) => {
       return obj;
     };
   
-    const transformedData = processObject(JSON.parse(JSON.stringify(formData)));
+    const transformedData = processObject(JSON.parse(JSON.stringify(data)));
   
     const jsonString = JSON.stringify(transformedData, null, 2);
   
