@@ -41,28 +41,32 @@ const DynamicForm = ({ prefillData }) => {
     }
   
     if (Array.isArray(value)) {
-      // Check if this array is "whitelist" and handle it correctly
-      const isWhitelist = key === "whitelist";
-      const isOtaPackage = parentKey.includes("otaPackage"); // Determines if in OTA Package context
+      // If the array contains only strings, show it as a single text input
+      if (value.every((item) => typeof item === "string" || (typeof item === "number" || !isNaN(Number(item))))) {
+        return (
+          <div key={fieldKey} className="space-y-4">
+            <h3 className="text-lg font-semibold">{key}</h3>
+            <Controller
+              name={fieldKey}
+              control={control}
+              defaultValue={value.join(", ")} 
+              render={({ field }) => <Input {...field} type="text" />}
+            />
+          </div>
+        );
+      }
   
+      // If the array contains objects, render them as dynamic fields
       return (
         <div key={fieldKey} className="space-y-4">
           <h3 className="text-lg font-semibold">{key}</h3>
-          <Controller
-            name={fieldKey}
-            control={control}
-            defaultValue={value.join(", ")} // Convert array to string for input
-            render={({ field }) => (
-              <Input
-                {...field}
-                type="text"
-                onChange={(e) => {
-                  const inputValue = e.target.value.split(",").map((item) => item.trim());
-                  field.onChange(isWhitelist && isOtaPackage ? inputValue.map(Number) : inputValue);
-                }}
-              />
-            )}
-          />
+          {value.map((item, index) => (
+            <div key={uuidv4()} className="space-y-2">
+              {Object.entries(item).map(([subKey, subValue]) =>
+                renderField(subKey, subValue, `${fieldKey}[${index}]`)
+              )}
+            </div>
+          ))}
         </div>
       );
     }
@@ -117,11 +121,11 @@ const DynamicForm = ({ prefillData }) => {
       if (typeof obj !== "object" || obj === null) return obj;
   
       for (const key in obj) {
-        if (Array.isArray(obj[key]) && key === "whitelist") {
+        if (Array.isArray(obj[key]) && (key === "whitelist" || key === "blacklist")) {
           // If inside `otaPackage`, ensure numbers, otherwise keep as strings
           obj[key] = parentKey.includes("otaPackage")
             ? obj[key].map((item) => Number(item)) // Convert to numbers
-            : obj[key].map(String); // Convert to strings
+            : obj[key].map((item) => String(item)); // Convert to strings
         } else if (typeof obj[key] === "object") {
           obj[key] = processObject(obj[key], key);
         }
@@ -139,7 +143,7 @@ const DynamicForm = ({ prefillData }) => {
     link.download = fileName;
     link.click();
     URL.revokeObjectURL(url);
-  };
+  };  
 
   return (
     <div className="pt-5 top-0 overflow-y-scroll px-5">
