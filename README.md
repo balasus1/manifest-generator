@@ -29,15 +29,18 @@ npm run start
 
 **Frontend server:**
 
+```bash
 sudo pm2 start ecosystem.config.js
+```
 
 ```bash
-pm2 save
+sudo pm2 save
 
-pm2 startup
+sudo pm2 startup
 
-pm2 list
+sudo pm2 list
 ```
 **Restarting nginx  server:**
-
+```bash
 sudo systemctl restart nginx
+```
