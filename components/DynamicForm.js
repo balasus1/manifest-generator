@@ -117,28 +117,17 @@ const DynamicForm = ({ prefillData }) => {
   };
 
   const handleDownload = (data) => {
-
     const processObject = (obj, parentKey = "") => {
       if (typeof obj !== "object" || obj === null) return obj;
-
+  
       for (const key in obj) {
         if (Array.isArray(obj[key]) && (key === "whitelist" || key === "blacklist")) {
-          let newArray = [];
-          if (parentKey === "full" && (key === "whitelist" || key === "blacklist")) {
-            // Convert values to numbers for `otaUpdate` lists
-            obj[key].forEach((item) => {
-              const num = Number(item);
-              if (!isNaN(num)) newArray.push(num); // Add only valid numbers
-            });
-          } else {
-            // Ensure it remains an array of strings elsewhere
-            obj[key].forEach((item) => {
-              newArray.push(String(item)); // Convert to string explicitly
-            });
-          }
-          obj[key] = newArray; // Replace the original array with the new one
+          // If inside `otaPackage`, ensure numbers, otherwise keep as strings
+          obj[key] = parentKey.includes("otaPackage")
+            ? obj[key].map((item) => Number(item)) // Convert to numbers
+            : obj[key].map((item) => String(item)); // Convert to strings
         } else if (typeof obj[key] === "object") {
-          obj[key] = processObject(obj[key], key); // Recursively process nested objects
+          obj[key] = processObject(obj[key], key);
         }
       }
       return obj;
@@ -147,7 +136,6 @@ const DynamicForm = ({ prefillData }) => {
     const transformedData = processObject(JSON.parse(JSON.stringify(data)));
   
     const jsonString = JSON.stringify(transformedData, null, 2);
-  
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -155,7 +143,7 @@ const DynamicForm = ({ prefillData }) => {
     link.download = fileName;
     link.click();
     URL.revokeObjectURL(url);
-  };
+  };  
 
   return (
     <div className="pt-5 top-0 overflow-y-scroll px-5">
