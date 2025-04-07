@@ -10,19 +10,61 @@ export const UploadJSON = ({ onFileUpload, onFileSelect, showForm }) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
+      
       reader.onload = (e) => {
-        const content = JSON.parse(e.target?.result);
-        const newFile = {
-          id: Date.now().toString(),
-          name: file.name,
-          uploadTime: new Date(),
-          content: content,
-        };
-        setUploadedFiles([newFile, ...uploadedFiles]);
-        onFileUpload(file);
-        onFileSelect(newFile.content);
-        setPrefillData(newFile.content);
+        try {
+          const content = JSON.parse(e.target?.result);
+          const newFile = {
+            id: Date.now().toString(),
+            name: file.name,
+            uploadTime: new Date(),
+            content: content,
+          };
+          setUploadedFiles([newFile, ...uploadedFiles]);
+          onFileUpload(file);
+          onFileSelect(newFile.content);
+          setPrefillData(newFile.content);
+        } catch (error) {
+          console.error("Error parsing JSON file:", error);
+          
+          // Create a more helpful error message with just the line number
+          let errorMessage = "The uploaded file contains invalid JSON.";
+          
+          if (error instanceof SyntaxError && e.target?.result) {
+            const fileContent = e.target.result;
+            
+            // Extract position if available
+            const positionMatch = error.message.match(/position (\d+)/);
+            if (positionMatch && positionMatch[1]) {
+              const position = parseInt(positionMatch[1], 10);
+              
+              // Calculate line number
+              let line = 1;
+              for (let i = 0; i < position; i++) {
+                if (fileContent[i] === '\n') {
+                  line++;
+                }
+              }
+              
+              errorMessage += ` Error at line ${line}.`;
+              
+              // Log the problematic line for debugging
+              const lines = fileContent.split('\n');
+              if (lines[line - 1]) {
+                console.error(`Problematic line (${line}):`, lines[line - 1]);
+              }
+            }
+          }
+          
+          errorMessage += " Please check for unescaped special characters or invalid syntax.";
+          alert(errorMessage);
+        }
       };
+      
+      reader.onerror = () => {
+        alert("Error reading file. Please try again with a different file.");
+      };
+      
       reader.readAsText(file);
     }
   };
