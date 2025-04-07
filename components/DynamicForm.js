@@ -41,7 +41,7 @@ const DynamicForm = ({ prefillData }) => {
     }
   
     if (Array.isArray(value)) {
-      // If the array contains only strings, show it as a single text input
+      // If the array contains only strings or numbers, show it as a single text input
       if (value.every((item) => typeof item === "string" || (typeof item === "number" || !isNaN(Number(item))))) {
         return (
           <div key={fieldKey} className="space-y-4">
@@ -113,27 +113,88 @@ const DynamicForm = ({ prefillData }) => {
   };
 
   const onSubmit = (formData) => {
-    handleDownload(formData);
+    // Process the form data before downloading
+    const processedData = processFormData(formData);
+    handleDownload(processedData);
+  };
+
+  // New function to process form data and handle arrays correctly
+  const processFormData = (data) => {
+    const processed = { ...data };
+    
+    // Process any string inputs that should be arrays
+    for (const key in processed) {
+      // Handle whitelist/blacklist in apps
+      if (key === "apps" && processed[key]) {
+        if (processed[key].whitelist && typeof processed[key].whitelist === "string") {
+          processed[key].whitelist = processed[key].whitelist.split(",").map(item => item.trim());
+        }
+        if (processed[key].blacklist && typeof processed[key].blacklist === "string") {
+          processed[key].blacklist = processed[key].blacklist.split(",").map(item => item.trim());
+        }
+      }
+      
+      // Handle whitelist/blacklist in otaPackage
+      if (key === "otaPackage" && processed[key]) {
+        if (processed[key].whitelist && typeof processed[key].whitelist === "string") {
+          processed[key].whitelist = processed[key].whitelist.split(",").map(item => Number(item.trim()));
+        }
+        if (processed[key].blacklist && typeof processed[key].blacklist === "string") {
+          processed[key].blacklist = processed[key].blacklist.split(",").map(item => Number(item.trim()));
+        }
+      }
+    }
+    
+    return processed;
   };
 
   const handleDownload = (data) => {
+    // Clean the data structure to ensure proper formatting
     const processObject = (obj, parentKey = "") => {
       if (typeof obj !== "object" || obj === null) return obj;
-  
+      
+      const result = Array.isArray(obj) ? [] : {};
+      
       for (const key in obj) {
-        if (Array.isArray(obj[key]) && (key === "whitelist" || key === "blacklist")) {
-          // If inside `otaPackage`, ensure numbers, otherwise keep as strings
-          obj[key] = parentKey.includes("otaPackage")
-            ? obj[key].map((item) => Number(item)) // Convert to numbers
-            : obj[key].map((item) => String(item)); // Convert to strings
-        } else if (typeof obj[key] === "object") {
-          obj[key] = processObject(obj[key], key);
+        const currentPath = parentKey ? `${parentKey}.${key}` : key;
+        
+        if (key === "whitelist" || key === "blacklist") {
+          // Handle whitelist and blacklist based on context
+          if (typeof obj[key] === "string") {
+            // If it's a string, convert to array
+            const items = obj[key].split(",").map(item => item.trim());
+            
+            // Convert to numbers for OTA package
+            if (currentPath.includes("otaPackage")) {
+              result[key] = items.map(item => Number(item));
+            } else {
+              // Keep as strings for apps
+              result[key] = items;
+            }
+          } else if (Array.isArray(obj[key])) {
+            // If already an array, ensure proper type conversion
+            if (currentPath.includes("otaPackage")) {
+              result[key] = obj[key].map(item => 
+                typeof item === "string" ? Number(item) : item
+              );
+            } else {
+              result[key] = obj[key].map(item => String(item));
+            }
+          } else {
+            result[key] = obj[key];
+          }
+        } else if (typeof obj[key] === "object" && obj[key] !== null) {
+          // Recursively process nested objects
+          result[key] = processObject(obj[key], currentPath);
+        } else {
+          result[key] = obj[key];
         }
       }
-      return obj;
+      
+      return result;
     };
   
-    const transformedData = processObject(JSON.parse(JSON.stringify(data)));
+    const transformedData = processObject(data);
   
     const jsonString = JSON.stringify(transformedData, null, 2);
     const blob = new Blob([jsonString], { type: "application/json" });
