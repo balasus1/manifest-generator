@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, FileInput } from "lucide-react";
 import DynamicForm from "./DynamicForm";
+import JSON5 from "json5";
 
 export const UploadJSON = ({ onFileUpload, onFileSelect, showForm }) => {
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -13,7 +14,7 @@ export const UploadJSON = ({ onFileUpload, onFileSelect, showForm }) => {
       
       reader.onload = (e) => {
         try {
-          const content = JSON.parse(e.target?.result);
+          const content = JSON5.parse(e.target?.result);
           const newFile = {
             id: Date.now().toString(),
             name: file.name,

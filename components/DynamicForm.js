@@ -78,7 +78,17 @@ const DynamicForm = ({ prefillData }) => {
           name={fieldKey}
           control={control}
           defaultValue={value}
-          render={({ field }) => <Input {...field} type="text" />}
+          render={({ field }) =>
+            key.toLowerCase().includes("releaseNotes".toLowerCase()) ? (
+              <textarea
+                {...field}
+                className="w-full h-32 p-2 border border-gray-300 rounded-md resize-y"
+                placeholder="Enter release notes..."
+              />
+            ) : (
+              <Input {...field} type="text" />
+            )
+          }
         />
       </div>
     );
@@ -187,7 +197,9 @@ const DynamicForm = ({ prefillData }) => {
           // Recursively process nested objects
           result[key] = processObject(obj[key], currentPath);
         } else {
-          result[key] = obj[key];
+          result[key] = typeof obj[key] === "string"
+            ? obj[key].replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"')
+            : obj[key];
         }
       }
       
@@ -197,7 +209,9 @@ const DynamicForm = ({ prefillData }) => {
     const transformedData = processObject(data);
   
     const jsonString = JSON.stringify(transformedData, null, 2);
+    //const finalJsonString = jsonString.replace(/\\n/g, '\n');
     const blob = new Blob([jsonString], { type: "application/json" });
+    
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
