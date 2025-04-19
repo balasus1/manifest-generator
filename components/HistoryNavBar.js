@@ -12,8 +12,8 @@ import {
 
 export const HistoryNavBar = ({ history, onRevert }) => {
   return (
-    <div className="w-48 px-5">
-      <Card className="flex flex-col  max-w-5xl mx-auto">
+    <div className='pt-4'>
+      <Card>
         <CardHeader>
           <CardTitle>History</CardTitle>
           <CardDescription>Shows the history of manifests generated for device model</CardDescription>

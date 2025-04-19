@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { HistoryNavBar } from './HistoryNavBar';
+import { useState } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import { saveToDatabase, getAllManifests } from '../app/action';
 import 'react-toastify/dist/ReactToastify.css';
@@ -10,7 +9,6 @@ import DynamicForm from "./DynamicForm";
 
 const ManifestForm = () => {
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [history, setHistory] = useState([]);
   const [formData, setFormData] = useState({ });
   const [showForm, setShowForm] = useState(false);
 
@@ -37,32 +35,6 @@ const ManifestForm = () => {
     }
   };
 
-  useEffect(() => {
-    const savedHistory = localStorage.getItem('manifestHistory');
-    if (savedHistory) {
-      setHistory(JSON.parse(savedHistory));
-    }
-    const fetchData = async () => {
-      const manifests = await getAllManifests();
-      if (manifests.length > 0) {
-        const formattedManifests = manifests.map((manifest) => ({
-          timestamp: new Date(manifest.created_at).getTime(),
-          formData: manifest.data,
-        }));
-
-        if(formattedManifests && formattedManifests[0].formData.length > 0){
-          setShowForm(true);
-        }
-        const mergedHistory = [
-          ...formattedManifests,
-          ...(savedHistory ? JSON.parse(savedHistory) : []),
-        ];
-        setHistory(mergedHistory);
-      }
-    };
-    fetchData();
-  }, []);
-
   const handleDownload = async () => {
     const errors = validateForm();
     if (errors.length > 0) {
@@ -83,23 +55,6 @@ const ManifestForm = () => {
       type: 'application/json',
     });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleRevert = (index) => {
-    const historyItem = history[index];
-    const manifestData = historyItem.formData;
-    const fileName = historyItem.fileName;
-
-    // Download the JSON file
-    const jsonBlob = new Blob([JSON.stringify(manifestData, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(jsonBlob);
     const a = document.createElement('a');
     a.href = url;
     a.download = fileName;
@@ -164,7 +119,6 @@ const ManifestForm = () => {
       <ToastContainer />
       <div className="w-full">
       <UploadJSON onFileUpload={handleFileUpload} onFileSelect={handleFileSelect} showForm={showForm}  />
-      {/* <HistoryNavBar history={history} onRevert={handleRevert} /> */}
       </div>
     </div>
   );

@@ -2,6 +2,8 @@
 import { neon } from "@neondatabase/serverless";
 
 const sql = neon(process.env.DATABASE_URL);
+debugger;
+console.log("Loaded DB URL:", process.env.DATABASE_URL);
 
 /**
  * Save JSON data to the Neon database with formatted file name
