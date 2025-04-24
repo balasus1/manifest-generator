@@ -220,6 +220,20 @@ const DynamicForm = ({ prefillData }) => {
     URL.revokeObjectURL(url);
   };  
 
+  const handleAddApp = () => {
+    setFormData((prev) => ({
+      ...prev,
+      apps: [...prev.apps, structuredClone(emptyApp)],
+    }));
+  };
+
+  const handleCloneApp = (index) => {
+    setFormData((prev) => {
+      const clone = structuredClone(prev.apps[index]);
+      return { ...prev, apps: [...prev.apps, clone] };
+    });
+  };
+
   return (
     <div className="pt-5 top-0 overflow-y-scroll px-5">
       <Card className="inline-flexw-full mx-auto">
@@ -272,7 +286,7 @@ const DynamicForm = ({ prefillData }) => {
             <Separator />
 
             <Tabs defaultValue="apps" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-2 relative">
                 <TabsTrigger value="apps" className="font-bold">
                   Apps
                 </TabsTrigger>
@@ -281,8 +295,38 @@ const DynamicForm = ({ prefillData }) => {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="apps">
+              <div className="top-0 h-full flex items-center justify-start gap-3 pr-1 pb-1 px-1">
+                <Button
+                  size="sm"
+                  className="bg-gradient-to-r from-blue-500 to-blue-700 bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={handleAddApp}
+                >
+                  + Add App
+                </Button>
+
+                <Button
+                  size="sm"
+                  className="bg-gradient-to-r from-green-500 to-green-700 bg-green-600 hover:bg-green-700 text-white"
+                  onClick={handleCloneApp}
+                >
+                  ++ Clone App
+                </Button>
+              </div>
                 <ScrollArea className="h-[340px] w-full rounded-md border p-4">
-                  {renderField("apps", formData.apps)}
+                  <Tabs>
+                    <TabsList>
+                      {formData.apps.map((app, index) => (
+                        <TabsTrigger key={index}>{app.appName}</TabsTrigger>
+                      ))}
+                    </TabsList>
+                    <TabsContent>
+                      {formData.apps.map((app, index) => (
+                        <div key={index}>
+                          {renderField("apps", [app])}
+                        </div>
+                      ))}
+                    </TabsContent>
+                  </Tabs>
                 </ScrollArea>
               </TabsContent>
               <TabsContent value="otaPackage">
