@@ -1,4 +1,4 @@
-import React, { useState , useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -17,19 +17,76 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 
+// Define an empty app template
+const emptyApp = {
+  appName: "New App",
+  packageName: "",
+  versionName: "",
+  versionCode: "",
+  iconThumbUrl: "",
+  downloadUrl: "",
+  md5: "",
+  appDescription: "",
+  releaseNotes: "",
+  releaseDate: "",
+  whitelist: [],
+  history:[{
+    versionName: "",
+    versionCode: "",
+    releaseNotes: "",
+    releaseDate: ""
+  }],
+  blacklist: []
+};
+
 const DynamicForm = ({ prefillData }) => {
-  const { control, handleSubmit } = useForm();
-  const [formData, setFormData] = useState(prefillData || {});
+  const { control, handleSubmit, reset, setValue, getValues } = useForm();
+  const [formData, setFormData] = useState(prefillData || {
+    apps: [],
+    otaPackage: { whitelist: [], blacklist: [] }
+  });
   const [fileName, setFileName] = useState("v103_onwards_manifest.json");
   const [isEditable, setIsEditable] = useState(false);
+  const [activeAppTab, setActiveAppTab] = useState(0);
 
   useEffect(() => {
-    setFormData(prefillData || {});
-  }, [prefillData]);
+    if (prefillData) {
+      // Process any array data to ensure it's in the correct format
+      const processedData = {...prefillData};
+      
+      // Ensure arrays are properly formed for apps
+      if (processedData.apps) {
+        processedData.apps = processedData.apps.map(app => {
+          const processedApp = {...app};
+          if (app.whitelist) {
+            processedApp.whitelist = Array.isArray(app.whitelist) 
+              ? app.whitelist.map(item => typeof item === 'object' ? JSON.stringify(item) : item) 
+              : [];
+          }
+          if (app.blacklist) {
+            processedApp.blacklist = Array.isArray(app.blacklist) 
+              ? app.blacklist.map(item => typeof item === 'object' ? JSON.stringify(item) : item) 
+              : [];
+          }
+          return processedApp;
+        });
+      }
+      
+      setFormData(processedData);
+      // If there are apps, set the active tab to the first one
+      if (processedData.apps && processedData.apps.length > 0) {
+        setActiveAppTab(0);
+      }
+      // Reset the form with the processed prefill data
+      reset(processedData);
+    }
+  }, [prefillData, reset]);
 
   const renderField = (key, value, parentKey = "") => {
+    //console.log("fieldKey", key)
     const fieldKey = parentKey ? `${parentKey}.${key}` : key;
     if (typeof value === "object" && !Array.isArray(value)) {
+      console.log("object", value,"key", key)
       return (
         <div key={fieldKey} className="space-y-4">
           <h3 className="text-lg font-semibold">{key}</h3>
@@ -134,14 +191,18 @@ const DynamicForm = ({ prefillData }) => {
     
     // Process any string inputs that should be arrays
     for (const key in processed) {
+      
       // Handle whitelist/blacklist in apps
       if (key === "apps" && processed[key]) {
-        if (processed[key].whitelist && typeof processed[key].whitelist === "string") {
-          processed[key].whitelist = processed[key].whitelist.split(",").map(item => item.trim());
-        }
-        if (processed[key].blacklist && typeof processed[key].blacklist === "string") {
-          processed[key].blacklist = processed[key].blacklist.split(",").map(item => item.trim());
-        }
+        console.log("apps", processed[key])
+        processed[key].forEach((app, index) => {
+          if (app.whitelist && typeof app.whitelist === "string") {
+            processed[key][index].whitelist = app.whitelist.split(",").map(item => item.trim());
+          }
+          if (app.blacklist && typeof app.blacklist === "string") {
+            processed[key][index].blacklist = app.blacklist.split(",").map(item => item.trim());
+          }
+        });
       }
       
       // Handle whitelist/blacklist in otaPackage
@@ -221,16 +282,58 @@ const DynamicForm = ({ prefillData }) => {
   };  
 
   const handleAddApp = () => {
-    setFormData((prev) => ({
-      ...prev,
-      apps: [...prev.apps, structuredClone(emptyApp)],
-    }));
+    const newApp = structuredClone(emptyApp);
+    console.log("newApp", newApp)
+    setFormData(prev => {
+      const updatedApps = [...(prev.apps || []), newApp];
+      const updatedData = { ...prev, apps: updatedApps };
+      // Immediately update active tab and reset form with updated data
+      setActiveAppTab(updatedApps.length - 1);
+      //reset(updatedData);
+      return updatedData;
+    });
   };
+  
 
   const handleCloneApp = (index) => {
-    setFormData((prev) => {
-      const clone = structuredClone(prev.apps[index]);
-      return { ...prev, apps: [...prev.apps, clone] };
+    const appIndex = index !== undefined ? index : activeAppTab;
+  
+    if (!formData.apps || formData.apps.length === 0 || appIndex >= formData.apps.length) {
+      console.warn("No app to clone");
+      return;
+    }
+  
+    const clonedApp = structuredClone(formData.apps[appIndex]);
+    clonedApp.appName = `${clonedApp.appName} (Clone)`;
+  
+    setFormData(prev => {
+      const updatedApps = [...prev.apps, clonedApp];
+      const updatedData = { ...prev, apps: updatedApps };
+      setActiveAppTab(updatedApps.length - 1);
+      reset(updatedData);
+      return updatedData;
+    });
+  };
+  
+
+  // Helper function to update array fields in app tabs
+  const handleAppArrayFieldChange = (index, fieldName, value) => {
+    // Convert comma-separated string to array, handling empty values
+    const arrayValue = value.trim() 
+      ? value.split(",").map(item => item.trim()).filter(item => item !== "")
+      : [];
+    
+    // Update the form value
+    setValue(`apps[${index}].${fieldName}`, arrayValue);
+    
+    // Also update the formData state to keep UI in sync
+    setFormData(prevData => {
+      const newData = {...prevData};
+      if (!newData.apps[index]) {
+        newData.apps[index] = {};
+      }
+      newData.apps[index][fieldName] = arrayValue;
+      return newData;
     });
   };
 
@@ -295,38 +398,97 @@ const DynamicForm = ({ prefillData }) => {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="apps">
-              <div className="top-0 h-full flex items-center justify-start gap-3 pr-1 pb-1 px-1">
-                <Button
-                  size="sm"
-                  className="bg-gradient-to-r from-blue-500 to-blue-700 bg-blue-600 hover:bg-blue-700 text-white"
-                  onClick={handleAddApp}
-                >
-                  + Add App
-                </Button>
+                <div className="top-0 h-full flex items-center justify-start gap-3 pr-1 pb-1 px-1">
+                  <Button
+                    size="sm"
+                    className="bg-gradient-to-r from-blue-500 to-blue-700 bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={handleAddApp}
+                    type="button"
+                  >
+                    + Add App
+                  </Button>
 
-                <Button
-                  size="sm"
-                  className="bg-gradient-to-r from-green-500 to-green-700 bg-green-600 hover:bg-green-700 text-white"
-                  onClick={handleCloneApp}
-                >
-                  ++ Clone App
-                </Button>
-              </div>
+                  <Button
+                    size="sm"
+                    className="bg-gradient-to-r from-green-500 to-green-700 bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() => handleCloneApp(activeAppTab)}
+                    type="button"
+                    disabled={!formData.apps || formData.apps.length === 0}
+                  >
+                    ++ Clone App
+                  </Button>
+                </div>
                 <ScrollArea className="h-[340px] w-full rounded-md border p-4">
-                  <Tabs>
-                    <TabsList>
+                  {formData.apps && formData.apps.length > 0 ? (
+                    <Tabs defaultValue={`app-${activeAppTab}`} onValueChange={(value) => {
+                      const tabIndex = parseInt(value.split('-')[1]);
+                      setActiveAppTab(tabIndex);
+                    }}>
+                      <TabsList className="mb-4 flex-wrap">
+                        {formData.apps.map((app, index) => (
+                          <TabsTrigger key={index} value={`app-${index}`}>
+                            {app.appName || `App ${index + 1}`}
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                      
                       {formData.apps.map((app, index) => (
-                        <TabsTrigger key={index}>{app.appName}</TabsTrigger>
+                        <TabsContent key={index} value={`app-${index}`} className="space-y-4">
+                          {Object.entries(app).map(([key, value]) => (
+                            <div key={`app-${index}-${key}`} className="space-y-2">
+                              <Label>{key}</Label>
+                              {key === "whitelist" || key === "blacklist" ? (
+                                // Special handling for array fields
+                                <div>
+                                  <Input
+                                    type="text"
+                                    defaultValue={
+                                      Array.isArray(value) 
+                                        ? value.map(item => 
+                                            typeof item === 'object' ? JSON.stringify(item) : item
+                                          ).join(", ") 
+                                        : value
+                                    }
+                                    onChange={(e) => handleAppArrayFieldChange(index, key, e.target.value)}
+                                    placeholder={`Enter ${key} as comma-separated values`}
+                                  />
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Enter values separated by commas
+                                  </p>
+                                </div>
+                              ) : key.toLowerCase().includes("releaseNotes".toLowerCase()) ? (
+                                // Special handling for release notes
+                                <Controller
+                                  name={`apps[${index}].${key}`}
+                                  control={control}
+                                  defaultValue={value}
+                                  render={({ field }) => (
+                                    <textarea
+                                      {...field}
+                                      className="w-full h-32 p-2 border border-gray-300 rounded-md resize-y"
+                                      placeholder="Enter release notes..."
+                                    />
+                                  )}
+                                />
+                              ) : (
+                                // Default handling for other fields
+                                <Controller
+                                  name={`apps[${index}].${key}`}
+                                  control={control}
+                                  defaultValue={value}
+                                  render={({ field }) => <Input {...field} type="text" />}
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </TabsContent>
                       ))}
-                    </TabsList>
-                    <TabsContent>
-                      {formData.apps.map((app, index) => (
-                        <div key={index}>
-                          {renderField("apps", [app])}
-                        </div>
-                      ))}
-                    </TabsContent>
-                  </Tabs>
+                    </Tabs>
+                  ) : (
+                    <div className="text-center py-10">
+                      <p className="text-gray-500">No apps added yet. Click '+ Add App' to get started.</p>
+                    </div>
+                  )}
                 </ScrollArea>
               </TabsContent>
               <TabsContent value="otaPackage">
