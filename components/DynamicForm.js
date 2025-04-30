@@ -30,7 +30,7 @@ const emptyApp = {
   releaseNotes: "",
   releaseDate: "",
   whitelist: [],
-  history:[{
+  history: [{
     versionName: "",
     versionCode: "",
     releaseNotes: "",
@@ -52,26 +52,26 @@ const DynamicForm = ({ prefillData }) => {
   useEffect(() => {
     if (prefillData) {
       // Process any array data to ensure it's in the correct format
-      const processedData = {...prefillData};
-      
+      const processedData = { ...prefillData };
+
       // Ensure arrays are properly formed for apps
       if (processedData.apps) {
         processedData.apps = processedData.apps.map(app => {
-          const processedApp = {...app};
+          const processedApp = { ...app };
           if (app.whitelist) {
-            processedApp.whitelist = Array.isArray(app.whitelist) 
-              ? app.whitelist.map(item => typeof item === 'object' ? JSON.stringify(item) : item) 
+            processedApp.whitelist = Array.isArray(app.whitelist)
+              ? app.whitelist.map(item => typeof item === 'object' ? JSON.stringify(item) : item)
               : [];
           }
           if (app.blacklist) {
-            processedApp.blacklist = Array.isArray(app.blacklist) 
-              ? app.blacklist.map(item => typeof item === 'object' ? JSON.stringify(item) : item) 
+            processedApp.blacklist = Array.isArray(app.blacklist)
+              ? app.blacklist.map(item => typeof item === 'object' ? JSON.stringify(item) : item)
               : [];
           }
           return processedApp;
         });
       }
-      
+
       setFormData(processedData);
       // If there are apps, set the active tab to the first one
       if (processedData.apps && processedData.apps.length > 0) {
@@ -86,7 +86,7 @@ const DynamicForm = ({ prefillData }) => {
     //console.log("fieldKey", key)
     const fieldKey = parentKey ? `${parentKey}.${key}` : key;
     if (typeof value === "object" && !Array.isArray(value)) {
-      console.log("object", value,"key", key)
+      console.log("object", value, "key", key)
       return (
         <div key={fieldKey} className="space-y-4">
           <h3 className="text-lg font-semibold">{key}</h3>
@@ -96,7 +96,7 @@ const DynamicForm = ({ prefillData }) => {
         </div>
       );
     }
-  
+
     if (Array.isArray(value)) {
       // If the array contains only strings or numbers, show it as a single text input
       if (value.every((item) => typeof item === "string" || (typeof item === "number" || !isNaN(Number(item))))) {
@@ -106,13 +106,13 @@ const DynamicForm = ({ prefillData }) => {
             <Controller
               name={fieldKey}
               control={control}
-              defaultValue={value.join(", ")} 
+              defaultValue={value.join(", ")}
               render={({ field }) => <Input {...field} type="text" />}
             />
           </div>
         );
       }
-  
+
       // If the array contains objects, render them as dynamic fields
       return (
         <div key={fieldKey} className="space-y-4">
@@ -127,7 +127,7 @@ const DynamicForm = ({ prefillData }) => {
         </div>
       );
     }
-  
+
     return (
       <div key={fieldKey} className="space-y-2">
         <Label>{key}</Label>
@@ -188,10 +188,10 @@ const DynamicForm = ({ prefillData }) => {
   // New function to process form data and handle arrays correctly
   const processFormData = (data) => {
     const processed = { ...data };
-    
+
     // Process any string inputs that should be arrays
     for (const key in processed) {
-      
+
       // Handle whitelist/blacklist in apps
       if (key === "apps" && processed[key]) {
         console.log("apps", processed[key])
@@ -204,7 +204,7 @@ const DynamicForm = ({ prefillData }) => {
           }
         });
       }
-      
+
       // Handle whitelist/blacklist in otaPackage
       if (key === "otaPackage" && processed[key]) {
         if (processed[key].whitelist && typeof processed[key].whitelist === "string") {
@@ -215,7 +215,7 @@ const DynamicForm = ({ prefillData }) => {
         }
       }
     }
-    
+
     return processed;
   };
 
@@ -223,18 +223,18 @@ const DynamicForm = ({ prefillData }) => {
     // Clean the data structure to ensure proper formatting
     const processObject = (obj, parentKey = "") => {
       if (typeof obj !== "object" || obj === null) return obj;
-      
+
       const result = Array.isArray(obj) ? [] : {};
-      
+
       for (const key in obj) {
         const currentPath = parentKey ? `${parentKey}.${key}` : key;
-        
+
         if (key === "whitelist" || key === "blacklist") {
           // Handle whitelist and blacklist based on context
           if (typeof obj[key] === "string") {
             // If it's a string, convert to array
             const items = obj[key].split(",").map(item => item.trim());
-            
+
             // Convert to numbers for OTA package
             if (currentPath.includes("otaPackage")) {
               result[key] = items.map(item => Number(item));
@@ -245,7 +245,7 @@ const DynamicForm = ({ prefillData }) => {
           } else if (Array.isArray(obj[key])) {
             // If already an array, ensure proper type conversion
             if (currentPath.includes("otaPackage")) {
-              result[key] = obj[key].map(item => 
+              result[key] = obj[key].map(item =>
                 typeof item === "string" ? Number(item) : item
               );
             } else {
@@ -263,23 +263,23 @@ const DynamicForm = ({ prefillData }) => {
             : obj[key];
         }
       }
-      
+
       return result;
     };
-  
+
     const transformedData = processObject(data);
-  
+
     const jsonString = JSON.stringify(transformedData, null, 2);
     //const finalJsonString = jsonString.replace(/\\n/g, '\n');
     const blob = new Blob([jsonString], { type: "application/json" });
-    
+
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
     link.download = fileName;
     link.click();
     URL.revokeObjectURL(url);
-  };  
+  };
 
   const handleAddApp = () => {
     const newApp = structuredClone(emptyApp);
@@ -293,42 +293,45 @@ const DynamicForm = ({ prefillData }) => {
       return updatedData;
     });
   };
-  
+
 
   const handleCloneApp = (index) => {
     const appIndex = index !== undefined ? index : activeAppTab;
-  
-    if (!formData.apps || formData.apps.length === 0 || appIndex >= formData.apps.length) {
+
+    const values = getValues(); // get latest values from form
+    const currentApps = values.apps || [];
+
+    if (!currentApps.length || appIndex >= currentApps.length) {
       console.warn("No app to clone");
       return;
     }
-  
-    const clonedApp = structuredClone(formData.apps[appIndex]);
+
+    const clonedApp = structuredClone(currentApps[appIndex]);
     clonedApp.appName = `${clonedApp.appName} (Clone)`;
-  
+
     setFormData(prev => {
-      const updatedApps = [...prev.apps, clonedApp];
+      const updatedApps = [...currentApps, clonedApp];
       const updatedData = { ...prev, apps: updatedApps };
       setActiveAppTab(updatedApps.length - 1);
-      reset(updatedData);
+      reset(updatedData); // reset form with full updated state
       return updatedData;
     });
   };
-  
+
 
   // Helper function to update array fields in app tabs
   const handleAppArrayFieldChange = (index, fieldName, value) => {
     // Convert comma-separated string to array, handling empty values
-    const arrayValue = value.trim() 
+    const arrayValue = value.trim()
       ? value.split(",").map(item => item.trim()).filter(item => item !== "")
       : [];
-    
+
     // Update the form value
     setValue(`apps[${index}].${fieldName}`, arrayValue);
-    
+
     // Also update the formData state to keep UI in sync
     setFormData(prevData => {
-      const newData = {...prevData};
+      const newData = { ...prevData };
       if (!newData.apps[index]) {
         newData.apps[index] = {};
       }
@@ -425,28 +428,59 @@ const DynamicForm = ({ prefillData }) => {
                       setActiveAppTab(tabIndex);
                     }}>
                       <TabsList className="mb-4 flex-wrap">
-                        {formData.apps.map((app, index) => (
-                          <TabsTrigger key={index} value={`app-${index}`}>
-                            {app.appName || `App ${index + 1}`}
-                          </TabsTrigger>
+                        {formData.apps.map((_, index) => (
+                          <Controller
+                            key={index}
+                            name={`apps[${index}].appName`}
+                            control={control}
+                            defaultValue={`App ${index + 1}`}
+                            render={({ field }) => (
+                              <TabsTrigger value={`app-${index}`}>
+                                {field.value || `App ${index + 1}`}
+                              </TabsTrigger>
+                            )}
+                          />
                         ))}
+
                       </TabsList>
-                      
+
                       {formData.apps.map((app, index) => (
                         <TabsContent key={index} value={`app-${index}`} className="space-y-4">
                           {Object.entries(app).map(([key, value]) => (
                             <div key={`app-${index}-${key}`} className="space-y-2">
                               <Label>{key}</Label>
-                              {key === "whitelist" || key === "blacklist" ? (
-                                // Special handling for array fields
+
+                              {key === "history" && Array.isArray(value) ? (
+                                <div className="space-y-4 pl-2 border-l border-gray-300">
+                                  {value.map((entry, entryIndex) => (
+                                    <div key={`app-${index}-history-${entryIndex}`} className="space-y-2 border p-2 rounded bg-gray-50">
+                                      <p className="text-sm font-medium">History Entry {entryIndex + 1}</p>
+                                      {Object.entries(entry).map(([fieldKey, fieldValue]) => (
+                                        <div key={fieldKey}>
+                                          <Label>{fieldKey}</Label>
+                                          <Controller
+                                            name={`apps[${index}].history[${entryIndex}].${fieldKey}`}
+                                            control={control}
+                                            defaultValue={fieldValue}
+                                            render={({ field }) => (
+                                              <Input {...field} type="text" />
+                                            )}
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : key === "whitelist" || key === "blacklist" ? (
+
                                 <div>
                                   <Input
                                     type="text"
                                     defaultValue={
-                                      Array.isArray(value) 
-                                        ? value.map(item => 
-                                            typeof item === 'object' ? JSON.stringify(item) : item
-                                          ).join(", ") 
+                                      Array.isArray(value)
+                                        ? value.map(item =>
+                                          typeof item === 'object' ? JSON.stringify(item) : item
+                                        ).join(", ")
                                         : value
                                     }
                                     onChange={(e) => handleAppArrayFieldChange(index, key, e.target.value)}
