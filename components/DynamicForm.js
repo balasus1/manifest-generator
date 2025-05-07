@@ -72,15 +72,15 @@ const DynamicForm = ({ prefillData }) => {
           if (app.whitelist) {
             processedApp.whitelist = Array.isArray(app.whitelist)
               ? app.whitelist.map((item) =>
-                  typeof item === 'object' ? JSON.stringify(item) : item
-                )
+                typeof item === 'object' ? JSON.stringify(item) : item
+              )
               : [];
           }
           if (app.blacklist) {
             processedApp.blacklist = Array.isArray(app.blacklist)
               ? app.blacklist.map((item) =>
-                  typeof item === 'object' ? JSON.stringify(item) : item
-                )
+                typeof item === 'object' ? JSON.stringify(item) : item
+              )
               : [];
           }
           return processedApp;
@@ -302,9 +302,9 @@ const DynamicForm = ({ prefillData }) => {
           result[key] =
             typeof obj[key] === 'string'
               ? obj[key]
-                  .replace(/\\/g, '\\\\')
-                  .replace(/\n/g, '\\n')
-                  .replace(/"/g, '\\"')
+                .replace(/\\/g, '\\\\')
+                .replace(/\n/g, '\\n')
+                .replace(/"/g, '\\"')
               : obj[key];
         }
       }
@@ -361,6 +361,53 @@ const DynamicForm = ({ prefillData }) => {
     });
   };
 
+  const handleAddOTAPackage = () => {
+    const defaultFullPackage = {
+      url: '',
+      version: '',
+      changelog: '',
+      md5: '',
+      forceupdate: '',
+      forceupdateminversion: '',
+      forceupdatemaxversion: '',
+      whitelist: [],
+      blacklist: [],
+    };
+
+    const updatedData = {
+      ...formData,
+      otaPackage: { full: defaultFullPackage },
+    };
+
+    setFormData(updatedData);
+    reset(updatedData); // Ensures form updates and fields appear
+  };
+
+  const handleRemoveOTAPackage = () => {
+    const updatedData = { ...formData };
+    delete updatedData.otaPackage;
+    setFormData(updatedData);
+    reset(updatedData);
+  };
+
+  const handleAddBlacklistToApp = (index) => {
+    const updatedData = { ...formData };
+    if (!updatedData.apps[index]) return;
+
+    updatedData.apps[index].blacklist = [];
+    setFormData(updatedData);
+    reset(updatedData);
+  };
+
+  const handleRemoveBlacklistFromApp = (index) => {
+    const updatedData = { ...formData };
+    if (updatedData.apps[index] && 'blacklist' in updatedData.apps[index]) {
+      delete updatedData.apps[index].blacklist;
+      setFormData(updatedData);
+      reset(updatedData);
+    }
+  };
+
   const handleDeleteApp = (indexToDelete) => {
     const values = getValues();
     const currentApps = values.apps || [];
@@ -377,8 +424,8 @@ const DynamicForm = ({ prefillData }) => {
       indexToDelete === activeAppTab
         ? Math.max(0, indexToDelete - 1)
         : activeAppTab > indexToDelete
-        ? activeAppTab - 1
-        : activeAppTab;
+          ? activeAppTab - 1
+          : activeAppTab;
 
     setFormData((prev) => {
       const updatedData = { ...prev, apps: updatedApps };
@@ -393,9 +440,9 @@ const DynamicForm = ({ prefillData }) => {
     // Convert comma-separated string to array, handling empty values
     const arrayValue = value.trim()
       ? value
-          .split(',')
-          .map((item) => item.trim())
-          .filter((item) => item !== '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter((item) => item !== '')
       : [];
 
     // Update the form value
@@ -572,35 +619,48 @@ const DynamicForm = ({ prefillData }) => {
                                 </div>
                               ) : key === 'whitelist' || key === 'blacklist' ? (
                                 <div>
-                                  <Input
-                                    type="text"
-                                    defaultValue={
-                                      Array.isArray(value)
-                                        ? value
+                                  <div className="flex items-center justify-between">
+                                    <Input
+                                      type="text"
+                                      defaultValue={
+                                        Array.isArray(value)
+                                          ? value
                                             .map((item) =>
                                               typeof item === 'object'
                                                 ? JSON.stringify(item)
                                                 : item
                                             )
                                             .join(', ')
-                                        : value
-                                    }
-                                    onChange={(e) =>
-                                      handleAppArrayFieldChange(
-                                        index,
-                                        key,
-                                        e.target.value
-                                      )
-                                    }
-                                    placeholder={`Enter ${key} as comma-separated values`}
-                                  />
+                                          : value
+                                      }
+                                      onChange={(e) =>
+                                        handleAppArrayFieldChange(
+                                          index,
+                                          key,
+                                          e.target.value
+                                        )
+                                      }
+                                      placeholder={`Enter ${key} as comma-separated values`}
+                                      className="flex-grow mr-2"
+                                    />
+                                    {key === 'blacklist' && (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        className="text-red-500 hover:text-red-700 text-sm h-8 px-2"
+                                        onClick={() => handleRemoveBlacklistFromApp(index)}
+                                      >
+                                        <X size={16} />
+                                      </Button>
+                                    )}
+                                  </div>
                                   <p className="text-xs text-gray-500 mt-1">
                                     Enter values separated by commas
                                   </p>
                                 </div>
                               ) : key
-                                  .toLowerCase()
-                                  .includes('releaseNotes'.toLowerCase()) ? (
+                                .toLowerCase()
+                                .includes('releaseNotes'.toLowerCase()) ? (
                                 // Special handling for release notes
                                 <Controller
                                   name={`apps[${index}].${key}`}
@@ -627,6 +687,20 @@ const DynamicForm = ({ prefillData }) => {
                               )}
                             </div>
                           ))}
+                          {!('blacklist' in app) && (
+                            <div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => handleAddBlacklistToApp(index)}
+                              >
+                                + Add Blacklist
+                              </Button>
+                            </div>
+                          )}
+
+
+
                         </TabsContent>
                       ))}
                     </Tabs>
@@ -641,8 +715,35 @@ const DynamicForm = ({ prefillData }) => {
                 </ScrollArea>
               </TabsContent>
               <TabsContent value="otaPackage">
-                <ScrollArea className="h-[340px] w-full rounded-md border p-4">
-                  {renderField('otaPackage', formData.otaPackage)}
+                <ScrollArea className="h-[340px] w-full rounded-md border p-4 space-y-4">
+                  {formData.otaPackage && formData.otaPackage.full ? (
+                    <>
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="text-red-500 hover:text-red-700"
+                          onClick={handleRemoveOTAPackage}
+                        >
+                          ✕ Close
+                        </Button>
+                      </div>
+                      {renderField('otaPackage', formData.otaPackage)}
+                    </>
+                  ) : (
+                    <div className="text-center text-sm text-gray-500">
+                      <p>No OTA package data found.</p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="bg-gradient-to-r from-green-500 to-green-700 bg-green-600 hover:bg-green-700 text-white"
+                        variant="outline"
+                        onClick={handleAddOTAPackage}
+                      >
+                        + Add OTA Package
+                      </Button>
+                    </div>
+                  )}
                 </ScrollArea>
               </TabsContent>
             </Tabs>
