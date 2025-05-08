@@ -5,8 +5,10 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 ### Prerequisites
 - Install NodeJS latest from https://nodejs.org/en/download
 - clone this repo
-- cd to clone repo
-- Follow below steps
+       git clone https://github.com/balasus1/manifest-generator.git
+- cd manifest-generator
+- npm install
+- npm run dev
 
 First, run the development server:
 
