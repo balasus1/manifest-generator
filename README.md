@@ -2,6 +2,12 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Prerequisites
+- Install NodeJS latest from https://nodejs.org/en/download
+- clone this repo
+- cd to clone repo
+- Follow below steps
+
 First, run the development server:
 
 ```bash
