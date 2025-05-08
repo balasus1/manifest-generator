@@ -390,6 +390,40 @@ const DynamicForm = ({ prefillData }) => {
     reset(updatedData);
   };
 
+  // New functions for whitelist management
+  const handleAddWhitelistToApp = (index) => {
+    const updatedData = { ...formData };
+    if (!updatedData.apps[index]) return;
+
+    updatedData.apps[index].whitelist = [];
+    setFormData(updatedData);
+    reset(updatedData);
+  };
+
+  const handleRemoveWhitelistFromApp = (index) => {
+    const updatedData = { ...formData };
+    if (updatedData.apps[index] && 'whitelist' in updatedData.apps[index]) {
+      delete updatedData.apps[index].whitelist;
+      setFormData(updatedData);
+      reset(updatedData);
+    }
+  };
+
+  const handleAddWhitelistToOTA = () => {
+    const updatedData = { ...formData };
+    updatedData.otaPackage.full.whitelist = [];
+    setFormData(updatedData);
+    reset(updatedData);
+  };
+  
+  const handleRemoveWhitelistFromOTA = () => {
+    const updatedData = { ...formData };
+    delete updatedData.otaPackage.full.whitelist;
+    setFormData(updatedData);
+    reset(updatedData);
+  };
+  
+
   const handleAddBlacklistToApp = (index) => {
     const updatedData = { ...formData };
     if (!updatedData.apps[index]) return;
@@ -403,6 +437,24 @@ const DynamicForm = ({ prefillData }) => {
     const updatedData = { ...formData };
     if (updatedData.apps[index] && 'blacklist' in updatedData.apps[index]) {
       delete updatedData.apps[index].blacklist;
+      setFormData(updatedData);
+      reset(updatedData);
+    }
+  };
+
+  const handleAddBlacklistToOTA = () => {
+    const updatedData = { ...formData };
+    if (!updatedData.otaPackage || !updatedData.otaPackage.full) return;
+
+    updatedData.otaPackage.full.blacklist = [];
+    setFormData(updatedData);
+    reset(updatedData);
+  };
+
+  const handleRemoveBlacklistFromOTA = () => {
+    const updatedData = { ...formData };
+    if (updatedData.otaPackage && updatedData.otaPackage.full && 'blacklist' in updatedData.otaPackage.full) {
+      delete updatedData.otaPackage.full.blacklist;
       setFormData(updatedData);
       reset(updatedData);
     }
@@ -455,6 +507,30 @@ const DynamicForm = ({ prefillData }) => {
         newData.apps[index] = {};
       }
       newData.apps[index][fieldName] = arrayValue;
+      return newData;
+    });
+  };
+
+  // Helper function to update array fields for OTA Package
+  const handleOTAArrayFieldChange = (fieldName, value) => {
+    // Convert comma-separated string to array, handling empty values
+    const arrayValue = value.trim()
+      ? value
+        .split(',')
+        .map((item) => item.trim())
+        .filter((item) => item !== '')
+      : [];
+
+    // Update the form value
+    setValue(`otaPackage.${fieldName}`, arrayValue);
+
+    // Also update the formData state to keep UI in sync
+    setFormData((prevData) => {
+      const newData = { ...prevData };
+      if (!newData.otaPackage) {
+        newData.otaPackage = {};
+      }
+      newData.otaPackage[fieldName] = arrayValue;
       return newData;
     });
   };
@@ -583,7 +659,14 @@ const DynamicForm = ({ prefillData }) => {
                           value={`app-${index}`}
                           className="space-y-4"
                         >
-                          {Object.entries(app).map(([key, value]) => (
+                          {[
+                            ...Object.entries(app).filter(([key]) => key !== 'whitelist' && key !== 'history' && key !== 'blacklist'),
+                            ...(app.whitelist ? [['whitelist', app.whitelist]] : []),
+                            ...(app.history ? [['history', app.history]] : []),
+                            ...(app.blacklist ? [['blacklist', app.blacklist]] : []),
+                          ].map(([key, value]) => (
+
+
                             <div
                               key={`app-${index}-${key}`}
                               className="space-y-2"
@@ -617,7 +700,40 @@ const DynamicForm = ({ prefillData }) => {
                                     </div>
                                   ))}
                                 </div>
-                              ) : key === 'whitelist' || key === 'blacklist' ? (
+                              ) : key === 'whitelist' ? (
+                                <div>
+                                  <div className="flex items-center justify-between">
+                                    <Input
+                                      type="text"
+                                      defaultValue={
+                                        Array.isArray(value)
+                                          ? value
+                                            .map((item) =>
+                                              typeof item === 'object' ? JSON.stringify(item) : item
+                                            )
+                                            .join(', ')
+                                          : value
+                                      }
+                                      onChange={(e) =>
+                                        handleAppArrayFieldChange(index, key, e.target.value)
+                                      }
+                                      placeholder={`Enter ${key} as comma-separated values`}
+                                      className="flex-grow mr-2"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      className="text-red-500 hover:text-red-700 text-sm h-8 px-2"
+                                      onClick={() => handleRemoveWhitelistFromApp(index)}
+                                    >
+                                      <X size={16} />
+                                    </Button>
+                                  </div>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Enter values separated by commas
+                                  </p>
+                                </div>
+                              ) : key === 'blacklist' ? (
                                 <div>
                                   <div className="flex items-center justify-between">
                                     <Input
@@ -687,20 +803,32 @@ const DynamicForm = ({ prefillData }) => {
                               )}
                             </div>
                           ))}
-                          {!('blacklist' in app) && (
-                            <div>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => handleAddBlacklistToApp(index)}
-                              >
-                                + Add Blacklist
-                              </Button>
-                            </div>
-                          )}
-
-
-
+                          <div className="flex space-x-4">
+                            {!('whitelist' in app) && (
+                              <div>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="bg-gradient-to-r from-blue-500 to-blue-700 bg-blue-600 hover:bg-blue-700 text-white"
+                                  onClick={() => handleAddWhitelistToApp(index)}
+                                >
+                                  + Add Whitelist
+                                </Button>
+                              </div>
+                            )}
+                            {!('blacklist' in app) && (
+                              <div>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="bg-gradient-to-r from-red-500 to-red-700 bg-red-600 hover:bg-red-700 text-white"
+                                  onClick={() => handleAddBlacklistToApp(index)}
+                                >
+                                  + Add Blacklist
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         </TabsContent>
                       ))}
                     </Tabs>
@@ -716,7 +844,7 @@ const DynamicForm = ({ prefillData }) => {
               </TabsContent>
               <TabsContent value="otaPackage">
                 <ScrollArea className="h-[340px] w-full rounded-md border p-4 space-y-4">
-                  {formData.otaPackage && formData.otaPackage.full ? (
+                {formData.otaPackage && formData.otaPackage.full ? (
                     <>
                       <div className="flex justify-end">
                         <Button
@@ -728,9 +856,115 @@ const DynamicForm = ({ prefillData }) => {
                           ✕ Close
                         </Button>
                       </div>
-                      {renderField('otaPackage', formData.otaPackage)}
+                      
+                      {/* Render fields for OTA Package */}
+                      {Object.entries(formData.otaPackage.full).filter(
+                        ([key]) => key !== 'whitelist' && key !== 'blacklist'
+                      ).map(([key, value]) => (
+                        <div key={`ota-${key}`} className="space-y-2">
+                          <Label>{key}</Label>
+                          <Controller
+                            name={`otaPackage.full.${key}`}
+                            control={control}
+                            defaultValue={value}
+                            render={({ field }) => (
+                              <Input {...field} type="text" />
+                            )}
+                          />
+                        </div>
+                      ))}
+                      
+                      {/* Whitelist field if it exists */}
+                      {formData.otaPackage.full.whitelist && (
+                        <div className="space-y-2">
+                          <Label>whitelist</Label>
+                          <div className="flex items-center justify-between">
+                            <Input
+                              type="text"
+                              defaultValue={
+                                Array.isArray(formData.otaPackage.full.whitelist)
+                                  ? formData.otaPackage.full.whitelist.join(', ')
+                                  : formData.otaPackage.full.whitelist
+                              }
+                              onChange={(e) =>
+                                handleOTAArrayFieldChange('full.whitelist', e.target.value)
+                              }
+                              placeholder="Enter whitelist as comma-separated values"
+                              className="flex-grow mr-2"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="text-red-500 hover:text-red-700 text-sm h-8 px-2"
+                              onClick={handleRemoveWhitelistFromOTA}
+                            >
+                              <X size={16} />
+                            </Button>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Enter values separated by commas
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Blacklist field if it exists */}
+                      {formData.otaPackage.full.blacklist && (
+                        <div className="space-y-2">
+                          <Label>blacklist</Label>
+                          <div className="flex items-center justify-between">
+                            <Input
+                              type="text"
+                              defaultValue={
+                                Array.isArray(formData.otaPackage.full.blacklist)
+                                  ? formData.otaPackage.full.blacklist.join(', ')
+                                  : formData.otaPackage.full.blacklist
+                              }
+                              onChange={(e) =>
+                                handleOTAArrayFieldChange('full.blacklist', e.target.value)
+                              }
+                              placeholder="Enter blacklist as comma-separated values"
+                              className="flex-grow mr-2"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="text-red-500 hover:text-red-700 text-sm h-8 px-2"
+                              onClick={handleRemoveBlacklistFromOTA}
+                            >
+                              <X size={16} />
+                            </Button>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Enter values separated by commas
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Add Whitelist/Blacklist buttons */}
+                      <div className="flex space-x-4 mt-4">
+                        {!formData.otaPackage.full.whitelist && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="bg-gradient-to-r from-blue-500 to-blue-700 bg-blue-600 hover:bg-blue-700 text-white"
+                            onClick={handleAddWhitelistToOTA}
+                          >
+                            + Add Whitelist
+                          </Button>
+                        )}
+                        {!formData.otaPackage.full.blacklist && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="bg-gradient-to-r from-red-500 to-red-700 bg-red-600 hover:bg-red-700 text-white"
+                            onClick={handleAddBlacklistToOTA}
+                          >
+                            + Add Blacklist
+                          </Button>
+                        )}
+                      </div>
                     </>
-                  ) : (
+                  )  : (
                     <div className="text-center text-sm text-gray-500">
                       <p>No OTA package data found.</p>
                       <Button
