@@ -1,6 +1,6 @@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { RotateCcw } from 'lucide-react';
+import { ArrowDownToLine } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/card';
 
 export const HistoryNavBar = ({ history, onRevert }) => {
+
   return (
     <div className='pt-4'>
       <Card>
@@ -22,33 +23,37 @@ export const HistoryNavBar = ({ history, onRevert }) => {
           <div>
             <ScrollArea className="flex-1">
               {history.map((item, index) => (
-                <div key={index} className="mb-4 p-2 bg-gray-100 rounded shadow">
-                  <p className="font-medium">{item.fileName}</p>
-                  <p className="text-sm text-gray-500">
-                    {new Date(item.timestamp).toLocaleString('en-GB', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                    })}
-                  </p>
-                  <div className='w-26 h-7 flex justify-start rounded-sm bg-slate-400 text-white text-xs'>
-                  <div className="text-xs m-2">Manifest generated for {item.deviceModel}</div>
-                  </div>
-                  
-                  {index < history.length - 1 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mt-2"
-                      onClick={() => onRevert(index + 1)}
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
+<div
+  key={index}
+  className="relative mb-4 bg-gray-100 rounded shadow px-4 py-2 flex items-center justify-between"
+>
+
+  <div className="absolute top-1 right-14 text-xs text-blue-700 font-semibold bg-blue-100 px-1 py-1">
+    # {item.device}
+  </div>
+
+  {/* Timestamp and file name */}
+  <div className="flex items-center gap-4 flex-wrap text-xs text-gray-700">
+    <p>
+      {new Date(item.timestamp).toLocaleString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      })}
+    </p>
+    <p className="font-semibold text-gray-900">{item.fileName}</p>
+  </div>
+
+  {/* Buttons */}
+  <div className="flex items-center gap-2">
+    <Button variant="ghost" size="sm" onClick={() => onRevert(index)} title="Revert">
+      <ArrowDownToLine className="h-4 w-4" />
+    </Button>
+  </div>
+</div>
               ))}
             </ScrollArea>
           </div>

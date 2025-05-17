@@ -74,26 +74,20 @@ export const UploadJSON = ({ onFileUpload, onFileSelect, showForm }) => {
   };
 
     useEffect(() => {
-      const savedHistory = localStorage.getItem('manifestHistory');
-      if (savedHistory) {
-        setHistory(JSON.parse(savedHistory));
-      }
+      // SELECT file_name, data, created_at, device_model FROM manifests ORDER BY created_at DESC
       const fetchData = async () => {
         const manifests = await getAllManifests();
         if (manifests.length > 0) {
           const formattedManifests = manifests.map((manifest) => ({
-            timestamp: new Date(manifest.created_at).getTime(),
+            fileName: manifest.file_name,
             formData: manifest.data,
+            timestamp: new Date(manifest.created_at).getTime(),
+            device: manifest.device_model,
           }));
   
-          if(formattedManifests && formattedManifests[0].formData.length > 0){
-            setShowForm(true);
+          if(formattedManifests){
+            setHistory(formattedManifests);
           }
-          const mergedHistory = [
-            ...formattedManifests,
-            ...(savedHistory ? JSON.parse(savedHistory) : []),
-          ];
-          setHistory(mergedHistory);
         }
       };
       fetchData();
@@ -129,7 +123,7 @@ export const UploadJSON = ({ onFileUpload, onFileSelect, showForm }) => {
             type="file"
             accept="application/json"
             onChange={handleFileUpload}
-            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
           />
           {uploadedFiles.length > 0 && (
             <>

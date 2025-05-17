@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
-import { saveToDatabase, getAllManifests } from '../app/action';
 import 'react-toastify/dist/ReactToastify.css';
 import { UploadJSON } from './UploadJSON';
-import DynamicForm from "./DynamicForm";
+
 
 const ManifestForm = () => {
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -33,33 +32,6 @@ const ManifestForm = () => {
       };
       reader.readAsText(file);
     }
-  };
-
-  const handleDownload = async () => {
-    const errors = validateForm();
-    if (errors.length > 0) {
-      errors.forEach((error) => toast.error(error));
-      return;
-    }
-    const firstAttribute = Object.keys(formData)[0];
-    const deviceModel = formData[firstAttribute];
-    const manifest = { formData };
-    await saveToDatabase(fileName, deviceModel, manifest);
-  // Update history state
-  const newEntry = { fileName, timestamp: Date.now(), formData: manifest };
-  setHistory((prevHistory) => [newEntry, ...prevHistory]);
-
-  // Save updated history to localStorage
-  localStorage.setItem('manifestHistory', JSON.stringify([newEntry, ...history]));
-    const blob = new Blob([JSON.stringify(manifest, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const validateForm = () => {

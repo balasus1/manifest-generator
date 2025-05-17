@@ -10,12 +10,13 @@ console.log("Loaded DB URL:", process.env.DATABASE_URL);
  * @param {string} fileName - The base name of the file (e.g., "v103_onwards_manifest.json")
  * @param {object} formData - The JSON data to save
  */
-export async function saveToDatabase(fileName, formData, deviceModel) {
+export async function saveToDatabase(fileName, formData, createdAt, deviceModel) {
+  debugger;
     try {
       // Insert the JSON data into the database
       await sql`
-        INSERT INTO manifests (file_name, data)
-        VALUES (${fileName}, ${JSON.stringify(formData)}, ${deviceModel})
+        INSERT INTO manifests (file_name, data, created_at, device_model)
+        VALUES (${fileName}, ${JSON.stringify(formData)}, ${createdAt},${deviceModel})
       `;
       console.log("Data saved to database successfully!");
     } catch (error) {
@@ -40,7 +41,7 @@ export async function saveToDatabase(fileName, formData, deviceModel) {
     try {
       // Retrieve all manifests from the database
       const result = await sql`
-        SELECT * FROM manifests
+        SELECT file_name, data, created_at, device_model FROM manifests ORDER BY created_at DESC
       `;
       return result;
     } catch (error) {

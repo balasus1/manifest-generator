@@ -50,15 +50,11 @@ const DynamicForm = ({ prefillData }) => {
       otaPackage: { whitelist: [], blacklist: [] },
     }
   );
+
   const [fileName, setFileName] = useState('v103_onwards_manifest.json');
   const [isEditable, setIsEditable] = useState(false);
   const [activeAppTab, setActiveAppTab] = useState(0);
   const [pendingResetData, setPendingResetData] = useState(null);
-  const [confirmDelete, setConfirmDelete] = useState({
-    open: false,
-    index: null,
-    appName: '',
-  });
 
   useEffect(() => {
     if (prefillData) {
@@ -72,15 +68,15 @@ const DynamicForm = ({ prefillData }) => {
           if (app.whitelist) {
             processedApp.whitelist = Array.isArray(app.whitelist)
               ? app.whitelist.map((item) =>
-                typeof item === 'object' ? JSON.stringify(item) : item
-              )
+                  typeof item === 'object' ? JSON.stringify(item) : item
+                )
               : [];
           }
           if (app.blacklist) {
             processedApp.blacklist = Array.isArray(app.blacklist)
               ? app.blacklist.map((item) =>
-                typeof item === 'object' ? JSON.stringify(item) : item
-              )
+                  typeof item === 'object' ? JSON.stringify(item) : item
+                )
               : [];
           }
           return processedApp;
@@ -260,8 +256,7 @@ const DynamicForm = ({ prefillData }) => {
     return processed;
   };
 
-  const handleDownload = (data) => {
-    // Clean the data structure to ensure proper formatting
+  const handleDownload = async (formData) => {
     const processObject = (obj, parentKey = '') => {
       if (typeof obj !== 'object' || obj === null) return obj;
 
@@ -271,40 +266,29 @@ const DynamicForm = ({ prefillData }) => {
         const currentPath = parentKey ? `${parentKey}.${key}` : key;
 
         if (key === 'whitelist' || key === 'blacklist') {
-          // Handle whitelist and blacklist based on context
           if (typeof obj[key] === 'string') {
-            // If it's a string, convert to array
             const items = obj[key].split(',').map((item) => item.trim());
-
-            // Convert to numbers for OTA package
-            if (currentPath.includes('otaPackage')) {
-              result[key] = items.map((item) => Number(item));
-            } else {
-              // Keep as strings for apps
-              result[key] = items;
-            }
+            result[key] = currentPath.includes('otaPackage')
+              ? items.map(Number)
+              : items;
           } else if (Array.isArray(obj[key])) {
-            // If already an array, ensure proper type conversion
-            if (currentPath.includes('otaPackage')) {
-              result[key] = obj[key].map((item) =>
-                typeof item === 'string' ? Number(item) : item
-              );
-            } else {
-              result[key] = obj[key].map((item) => String(item));
-            }
+            result[key] = currentPath.includes('otaPackage')
+              ? obj[key].map((item) =>
+                  typeof item === 'string' ? Number(item) : item
+                )
+              : obj[key].map((item) => String(item));
           } else {
             result[key] = obj[key];
           }
-        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-          // Recursively process nested objects
+        } else if (typeof obj[key] === 'object') {
           result[key] = processObject(obj[key], currentPath);
         } else {
           result[key] =
             typeof obj[key] === 'string'
               ? obj[key]
-                .replace(/\\/g, '\\\\')
-                .replace(/\n/g, '\\n')
-                .replace(/"/g, '\\"')
+                  .replace(/\\/g, '\\\\')
+                  .replace(/\n/g, '\\n')
+                  .replace(/"/g, '\\"')
               : obj[key];
         }
       }
@@ -312,18 +296,39 @@ const DynamicForm = ({ prefillData }) => {
       return result;
     };
 
-    const transformedData = processObject(data);
-
+    const transformedData = processObject(formData);
     const jsonString = JSON.stringify(transformedData, null, 2);
-    //const finalJsonString = jsonString.replace(/\\n/g, '\n');
     const blob = new Blob([jsonString], { type: 'application/json' });
-
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = fileName;
     link.click();
     URL.revokeObjectURL(url);
+
+    // Save history entry to localStorage
+    const deviceModel =
+      formData?.deviceModel ||
+      formData?.[Object.keys(formData)[0]] ||
+      'UNKNOWN_DEVICE';
+
+    const entry = {
+      fileName,
+      formData: transformedData,
+      timestamp: Date.now(),
+      deviceModel,
+    };
+
+    await fetch('/api/history/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileName: entry.fileName,
+        formData: entry.formData,
+        createdAt: new Date(entry.timestamp).toISOString(),
+        deviceModel: entry.deviceModel,
+      }),
+    });
   };
 
   const handleAddApp = () => {
@@ -415,14 +420,13 @@ const DynamicForm = ({ prefillData }) => {
     setFormData(updatedData);
     reset(updatedData);
   };
-  
+
   const handleRemoveWhitelistFromOTA = () => {
     const updatedData = { ...formData };
     delete updatedData.otaPackage.full.whitelist;
     setFormData(updatedData);
     reset(updatedData);
   };
-  
 
   const handleAddBlacklistToApp = (index) => {
     const updatedData = { ...formData };
@@ -453,7 +457,11 @@ const DynamicForm = ({ prefillData }) => {
 
   const handleRemoveBlacklistFromOTA = () => {
     const updatedData = { ...formData };
-    if (updatedData.otaPackage && updatedData.otaPackage.full && 'blacklist' in updatedData.otaPackage.full) {
+    if (
+      updatedData.otaPackage &&
+      updatedData.otaPackage.full &&
+      'blacklist' in updatedData.otaPackage.full
+    ) {
       delete updatedData.otaPackage.full.blacklist;
       setFormData(updatedData);
       reset(updatedData);
@@ -476,8 +484,8 @@ const DynamicForm = ({ prefillData }) => {
       indexToDelete === activeAppTab
         ? Math.max(0, indexToDelete - 1)
         : activeAppTab > indexToDelete
-          ? activeAppTab - 1
-          : activeAppTab;
+        ? activeAppTab - 1
+        : activeAppTab;
 
     setFormData((prev) => {
       const updatedData = { ...prev, apps: updatedApps };
@@ -492,9 +500,9 @@ const DynamicForm = ({ prefillData }) => {
     // Convert comma-separated string to array, handling empty values
     const arrayValue = value.trim()
       ? value
-        .split(',')
-        .map((item) => item.trim())
-        .filter((item) => item !== '')
+          .split(',')
+          .map((item) => item.trim())
+          .filter((item) => item !== '')
       : [];
 
     // Update the form value
@@ -516,9 +524,9 @@ const DynamicForm = ({ prefillData }) => {
     // Convert comma-separated string to array, handling empty values
     const arrayValue = value.trim()
       ? value
-        .split(',')
-        .map((item) => item.trim())
-        .filter((item) => item !== '')
+          .split(',')
+          .map((item) => item.trim())
+          .filter((item) => item !== '')
       : [];
 
     // Update the form value
@@ -660,13 +668,20 @@ const DynamicForm = ({ prefillData }) => {
                           className="space-y-4"
                         >
                           {[
-                            ...Object.entries(app).filter(([key]) => key !== 'whitelist' && key !== 'history' && key !== 'blacklist'),
-                            ...(app.whitelist ? [['whitelist', app.whitelist]] : []),
+                            ...Object.entries(app).filter(
+                              ([key]) =>
+                                key !== 'whitelist' &&
+                                key !== 'history' &&
+                                key !== 'blacklist'
+                            ),
+                            ...(app.whitelist
+                              ? [['whitelist', app.whitelist]]
+                              : []),
                             ...(app.history ? [['history', app.history]] : []),
-                            ...(app.blacklist ? [['blacklist', app.blacklist]] : []),
+                            ...(app.blacklist
+                              ? [['blacklist', app.blacklist]]
+                              : []),
                           ].map(([key, value]) => (
-
-
                             <div
                               key={`app-${index}-${key}`}
                               className="space-y-2"
@@ -708,14 +723,20 @@ const DynamicForm = ({ prefillData }) => {
                                       defaultValue={
                                         Array.isArray(value)
                                           ? value
-                                            .map((item) =>
-                                              typeof item === 'object' ? JSON.stringify(item) : item
-                                            )
-                                            .join(', ')
+                                              .map((item) =>
+                                                typeof item === 'object'
+                                                  ? JSON.stringify(item)
+                                                  : item
+                                              )
+                                              .join(', ')
                                           : value
                                       }
                                       onChange={(e) =>
-                                        handleAppArrayFieldChange(index, key, e.target.value)
+                                        handleAppArrayFieldChange(
+                                          index,
+                                          key,
+                                          e.target.value
+                                        )
                                       }
                                       placeholder={`Enter ${key} as comma-separated values`}
                                       className="flex-grow mr-2"
@@ -724,7 +745,9 @@ const DynamicForm = ({ prefillData }) => {
                                       type="button"
                                       variant="ghost"
                                       className="text-red-500 hover:text-red-700 text-sm h-8 px-2"
-                                      onClick={() => handleRemoveWhitelistFromApp(index)}
+                                      onClick={() =>
+                                        handleRemoveWhitelistFromApp(index)
+                                      }
                                     >
                                       <X size={16} />
                                     </Button>
@@ -741,12 +764,12 @@ const DynamicForm = ({ prefillData }) => {
                                       defaultValue={
                                         Array.isArray(value)
                                           ? value
-                                            .map((item) =>
-                                              typeof item === 'object'
-                                                ? JSON.stringify(item)
-                                                : item
-                                            )
-                                            .join(', ')
+                                              .map((item) =>
+                                                typeof item === 'object'
+                                                  ? JSON.stringify(item)
+                                                  : item
+                                              )
+                                              .join(', ')
                                           : value
                                       }
                                       onChange={(e) =>
@@ -764,7 +787,9 @@ const DynamicForm = ({ prefillData }) => {
                                         type="button"
                                         variant="ghost"
                                         className="text-red-500 hover:text-red-700 text-sm h-8 px-2"
-                                        onClick={() => handleRemoveBlacklistFromApp(index)}
+                                        onClick={() =>
+                                          handleRemoveBlacklistFromApp(index)
+                                        }
                                       >
                                         <X size={16} />
                                       </Button>
@@ -775,8 +800,8 @@ const DynamicForm = ({ prefillData }) => {
                                   </p>
                                 </div>
                               ) : key
-                                .toLowerCase()
-                                .includes('releaseNotes'.toLowerCase()) ? (
+                                  .toLowerCase()
+                                  .includes('releaseNotes'.toLowerCase()) ? (
                                 // Special handling for release notes
                                 <Controller
                                   name={`apps[${index}].${key}`}
@@ -844,7 +869,7 @@ const DynamicForm = ({ prefillData }) => {
               </TabsContent>
               <TabsContent value="otaPackage">
                 <ScrollArea className="h-[340px] w-full rounded-md border p-4 space-y-4">
-                {formData.otaPackage && formData.otaPackage.full ? (
+                  {formData.otaPackage && formData.otaPackage.full ? (
                     <>
                       <div className="flex justify-end">
                         <Button
@@ -856,24 +881,26 @@ const DynamicForm = ({ prefillData }) => {
                           ✕ Close
                         </Button>
                       </div>
-                      
+
                       {/* Render fields for OTA Package */}
-                      {Object.entries(formData.otaPackage.full).filter(
-                        ([key]) => key !== 'whitelist' && key !== 'blacklist'
-                      ).map(([key, value]) => (
-                        <div key={`ota-${key}`} className="space-y-2">
-                          <Label>{key}</Label>
-                          <Controller
-                            name={`otaPackage.full.${key}`}
-                            control={control}
-                            defaultValue={value}
-                            render={({ field }) => (
-                              <Input {...field} type="text" />
-                            )}
-                          />
-                        </div>
-                      ))}
-                      
+                      {Object.entries(formData.otaPackage.full)
+                        .filter(
+                          ([key]) => key !== 'whitelist' && key !== 'blacklist'
+                        )
+                        .map(([key, value]) => (
+                          <div key={`ota-${key}`} className="space-y-2">
+                            <Label>{key}</Label>
+                            <Controller
+                              name={`otaPackage.full.${key}`}
+                              control={control}
+                              defaultValue={value}
+                              render={({ field }) => (
+                                <Input {...field} type="text" />
+                              )}
+                            />
+                          </div>
+                        ))}
+
                       {/* Whitelist field if it exists */}
                       {formData.otaPackage.full.whitelist && (
                         <div className="space-y-2">
@@ -882,12 +909,19 @@ const DynamicForm = ({ prefillData }) => {
                             <Input
                               type="text"
                               defaultValue={
-                                Array.isArray(formData.otaPackage.full.whitelist)
-                                  ? formData.otaPackage.full.whitelist.join(', ')
+                                Array.isArray(
+                                  formData.otaPackage.full.whitelist
+                                )
+                                  ? formData.otaPackage.full.whitelist.join(
+                                      ', '
+                                    )
                                   : formData.otaPackage.full.whitelist
                               }
                               onChange={(e) =>
-                                handleOTAArrayFieldChange('full.whitelist', e.target.value)
+                                handleOTAArrayFieldChange(
+                                  'full.whitelist',
+                                  e.target.value
+                                )
                               }
                               placeholder="Enter whitelist as comma-separated values"
                               className="flex-grow mr-2"
@@ -906,7 +940,7 @@ const DynamicForm = ({ prefillData }) => {
                           </p>
                         </div>
                       )}
-                      
+
                       {/* Blacklist field if it exists */}
                       {formData.otaPackage.full.blacklist && (
                         <div className="space-y-2">
@@ -915,12 +949,19 @@ const DynamicForm = ({ prefillData }) => {
                             <Input
                               type="text"
                               defaultValue={
-                                Array.isArray(formData.otaPackage.full.blacklist)
-                                  ? formData.otaPackage.full.blacklist.join(', ')
+                                Array.isArray(
+                                  formData.otaPackage.full.blacklist
+                                )
+                                  ? formData.otaPackage.full.blacklist.join(
+                                      ', '
+                                    )
                                   : formData.otaPackage.full.blacklist
                               }
                               onChange={(e) =>
-                                handleOTAArrayFieldChange('full.blacklist', e.target.value)
+                                handleOTAArrayFieldChange(
+                                  'full.blacklist',
+                                  e.target.value
+                                )
                               }
                               placeholder="Enter blacklist as comma-separated values"
                               className="flex-grow mr-2"
@@ -939,7 +980,7 @@ const DynamicForm = ({ prefillData }) => {
                           </p>
                         </div>
                       )}
-                      
+
                       {/* Add Whitelist/Blacklist buttons */}
                       <div className="flex space-x-4 mt-4">
                         {!formData.otaPackage.full.whitelist && (
@@ -964,7 +1005,7 @@ const DynamicForm = ({ prefillData }) => {
                         )}
                       </div>
                     </>
-                  )  : (
+                  ) : (
                     <div className="text-center text-sm text-gray-500">
                       <p>No OTA package data found.</p>
                       <Button
