@@ -389,74 +389,251 @@ const DynamicForm = ({ prefillData }) => {
     setFormData(updatedData);
     reset(updatedData);
   };
-
   // New functions for whitelist management
   const handleAddWhitelistToApp = (index) => {
+    // Get current form values to preserve existing data
+    const currentValues = getValues();
     const updatedData = { ...formData };
+    
     if (!updatedData.apps[index]) return;
 
+    // Add empty whitelist array
     updatedData.apps[index].whitelist = [];
+    
+    // Update the form data state
     setFormData(updatedData);
-    reset(updatedData);
+    
+    // Create a merged object that preserves all existing form data plus the new whitelist
+    const updatedFormData = {
+      ...currentValues,
+      apps: [...(currentValues.apps || [])]
+    };
+    
+    // Make sure the app object exists
+    if (!updatedFormData.apps[index]) {
+      updatedFormData.apps[index] = {};
+    }
+    
+    // Add the whitelist to the specific app
+    updatedFormData.apps[index].whitelist = [];
+    
+    // Reset the form with all the data
+    reset(updatedFormData);
   };
 
   const handleRemoveWhitelistFromApp = (index) => {
+    // Get current form values first
+    const currentValues = getValues();
     const updatedData = { ...formData };
+    
     if (updatedData.apps[index] && 'whitelist' in updatedData.apps[index]) {
+      // Only delete the whitelist property, not the entire app object
       delete updatedData.apps[index].whitelist;
+      
+      // Update the form data state
       setFormData(updatedData);
-      reset(updatedData);
+      
+      // Create a merged object that preserves all existing form data
+      const updatedFormData = {
+        ...currentValues,
+        apps: [...(currentValues.apps || [])]
+      };
+      
+      // Make sure the app object exists
+      if (updatedFormData.apps[index]) {
+        // Only remove the whitelist property
+        delete updatedFormData.apps[index].whitelist;
+      }
+      
+      // Reset the form with the updated data
+      reset(updatedFormData);
     }
   };
 
   const handleAddWhitelistToOTA = () => {
+    // Get current form values to preserve existing data
+    const currentValues = getValues();
     const updatedData = { ...formData };
+    
+    // Make sure otaPackage and full object exist
+    if (!updatedData.otaPackage) {
+      updatedData.otaPackage = {};
+    }
+    if (!updatedData.otaPackage.full) {
+      updatedData.otaPackage.full = {};
+    }
+    
+    // Add empty whitelist array
     updatedData.otaPackage.full.whitelist = [];
+    
+    // Update the form data state
     setFormData(updatedData);
-    reset(updatedData);
+    
+    // Create a merged object that preserves all existing form data
+    const updatedFormData = { ...currentValues };
+    
+    // Make sure the otaPackage and full objects exist in form data
+    if (!updatedFormData.otaPackage) {
+      updatedFormData.otaPackage = {};
+    }
+    if (!updatedFormData.otaPackage.full) {
+      updatedFormData.otaPackage.full = {};
+    }
+    
+    // Add the whitelist
+    updatedFormData.otaPackage.full.whitelist = [];
+    
+    // Reset the form with all the data
+    reset(updatedFormData);
   };
   
   const handleRemoveWhitelistFromOTA = () => {
+    // Get current form values
+    const currentValues = getValues();
     const updatedData = { ...formData };
-    delete updatedData.otaPackage.full.whitelist;
-    setFormData(updatedData);
-    reset(updatedData);
+    
+    // Check if otaPackage and full exist
+    if (updatedData.otaPackage && updatedData.otaPackage.full && 'whitelist' in updatedData.otaPackage.full) {
+      // Only delete the whitelist property, not the entire otaPackage
+      delete updatedData.otaPackage.full.whitelist;
+      
+      // Update the form data state
+      setFormData(updatedData);
+      
+      // Create a merged object that preserves existing form data
+      const updatedFormData = { ...currentValues };
+      
+      // Make sure otaPackage and full objects exist in form data
+      if (updatedFormData.otaPackage && updatedFormData.otaPackage.full) {
+        // Only remove the whitelist property
+        delete updatedFormData.otaPackage.full.whitelist;
+      }
+      
+      // Reset the form with updated data
+      reset(updatedFormData);
+    }
   };
-  
 
   const handleAddBlacklistToApp = (index) => {
+    // Get current form values
+    const currentValues = getValues();
     const updatedData = { ...formData };
+    
     if (!updatedData.apps[index]) return;
 
+    // Add empty blacklist array
     updatedData.apps[index].blacklist = [];
+    
+    // Update the form data state
     setFormData(updatedData);
-    reset(updatedData);
+    
+    // Create a merged object that preserves all existing form data
+    const updatedFormData = {
+      ...currentValues,
+      apps: [...(currentValues.apps || [])]
+    };
+    
+    // Make sure the app object exists
+    if (!updatedFormData.apps[index]) {
+      updatedFormData.apps[index] = {};
+    }
+    
+    // Add the blacklist
+    updatedFormData.apps[index].blacklist = [];
+    
+    // Reset the form with all the data
+    reset(updatedFormData);
   };
 
   const handleRemoveBlacklistFromApp = (index) => {
+    // Get current form values
+    const currentValues = getValues();
     const updatedData = { ...formData };
+    
     if (updatedData.apps[index] && 'blacklist' in updatedData.apps[index]) {
+      // Only delete the blacklist property, not the entire app object
       delete updatedData.apps[index].blacklist;
+      
+      // Update the form data state
       setFormData(updatedData);
-      reset(updatedData);
+      
+      // Create a merged object that preserves all existing form data
+      const updatedFormData = {
+        ...currentValues,
+        apps: [...(currentValues.apps || [])]
+      };
+      
+      // Make sure the app object exists
+      if (updatedFormData.apps[index]) {
+        // Only remove the blacklist property
+        delete updatedFormData.apps[index].blacklist;
+      }
+      
+      // Reset the form with updated data
+      reset(updatedFormData);
     }
   };
 
   const handleAddBlacklistToOTA = () => {
+    // Get current form values
+    const currentValues = getValues();
     const updatedData = { ...formData };
-    if (!updatedData.otaPackage || !updatedData.otaPackage.full) return;
-
+    
+    // Make sure otaPackage and full object exist
+    if (!updatedData.otaPackage) {
+      updatedData.otaPackage = {};
+    }
+    if (!updatedData.otaPackage.full) {
+      updatedData.otaPackage.full = {};
+    }
+    
+    // Add empty blacklist array
     updatedData.otaPackage.full.blacklist = [];
+    
+    // Update form data state
     setFormData(updatedData);
-    reset(updatedData);
+    
+    // Create a merged object that preserves all existing form data
+    const updatedFormData = { ...currentValues };
+    
+    // Make sure the otaPackage and full objects exist in form data
+    if (!updatedFormData.otaPackage) {
+      updatedFormData.otaPackage = {};
+    }
+    if (!updatedFormData.otaPackage.full) {
+      updatedFormData.otaPackage.full = {};
+    }
+    
+    // Add the blacklist
+    updatedFormData.otaPackage.full.blacklist = [];
+    
+    // Reset the form with all the data
+    reset(updatedFormData);
   };
 
   const handleRemoveBlacklistFromOTA = () => {
+    // Get current form values
+    const currentValues = getValues();
     const updatedData = { ...formData };
+    
     if (updatedData.otaPackage && updatedData.otaPackage.full && 'blacklist' in updatedData.otaPackage.full) {
+      // Only delete the blacklist property
       delete updatedData.otaPackage.full.blacklist;
+      
+      // Update form data state
       setFormData(updatedData);
-      reset(updatedData);
+      
+      // Create a merged object that preserves existing form data
+      const updatedFormData = { ...currentValues };
+      
+      // Make sure otaPackage and full objects exist in form data
+      if (updatedFormData.otaPackage && updatedFormData.otaPackage.full) {
+        // Only remove the blacklist property
+        delete updatedFormData.otaPackage.full.blacklist;
+      }
+      
+      // Reset the form with updated data
+      reset(updatedFormData);
     }
   };
 
