@@ -1,0 +1,29 @@
+automations:
+  - name: Start Next.js dev server (stable port + auto-restart)
+    trigger: workspace
+    init: |
+      if [ -f package.json ]; then
+        npm install
+      fi
+    command: |
+      if [ -f package.json ]; then
+        # Check if we already saved a port for this workspace
+        if [ -f /tmp/nextjs_port ]; then
+          PORT=$(cat /tmp/nextjs_port)
+        else
+          # Find first available port between 3000 and 3010
+          PORT=$(comm -23 <(seq 3000 3010) <(ss -tuln | awk '{print $5}' | grep -oE '[0-9]+$' | sort -u) | head -n 1)
+          echo $PORT > /tmp/nextjs_port
+        fi
+
+        PREVIEW_URL="https://${PORT}-$(echo $GITPOD_WORKSPACE_URL | sed 's|https://||')"
+
+        echo "✅ Using PORT=$PORT for Next.js"
+        echo "🌐 Preview: $PREVIEW_URL"
+
+        while true; do
+          npm run dev -- --port $PORT
+          echo "⚠️ Next.js stopped. Restarting in 2 seconds..."
+          sleep 2
+        done
+      fi

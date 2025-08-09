@@ -1,0 +1,21 @@
+{
+  "name": "Ubuntu 24 Multi-Dev",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      },
+      "extensions": [
+        "ms-vscode.vscode-node-azure-pack",
+        "ms-python.python",
+        "vscjava.vscode-java-pack",
+        "golang.go",
+        "amazonwebservices.aws-toolkit-vscode"
+      ]
+    }
+  },
+  "postCreateCommand": "echo '✅ Devcontainer ready on Ubuntu 24.04 with Node, Python, Java, Go, Maven, Gradle, and AWS CLI.'"
+}
